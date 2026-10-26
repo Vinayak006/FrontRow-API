@@ -22,3 +22,5 @@ class UserInfo(BaseModel):
     id: int
     name: str | None = None
     email: str
+
+    model_config = ConfigDict(from_attributes=True)
