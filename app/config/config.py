@@ -15,6 +15,8 @@ class Settings(BaseSettings):
     JWT_REFRESH_TOKEN_MINUTES: int = 8640
     JWT_SECRET_KEY: str
 
+    RESERVE_HOLD_MIN: int = 10
+
     DEVELOPMENT_MODE: bool = True
 
     model_config = SettingsConfigDict(
