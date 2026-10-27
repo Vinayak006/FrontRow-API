@@ -1,8 +1,7 @@
 from enum import Enum
 from typing import Optional
-from pydantic import BaseModel as pydantic_base_model
+from pydantic import BaseModel
 
-from langsmith import BaseModel
 from pydantic import Field
 
 
@@ -11,7 +10,7 @@ class LLMProvider(str, Enum):
     OPENAI = "openai"
 
 
-class LLMChatRequest(pydantic_base_model):
+class LLMChatRequest(BaseModel):
     message: str = Field(min_length=1)
 
 
