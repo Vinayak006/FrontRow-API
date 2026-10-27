@@ -129,6 +129,7 @@ class EventBookingIDResponse(BaseModel):
 class EventBookingDetail(BaseModel):
     id: int
     event_date: date
+    hold_expires_at: datetime | None
     status: EventBookingStatus
     event: EventRead
     seats: list[EventSeatInfo]
