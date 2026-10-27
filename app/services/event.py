@@ -517,6 +517,7 @@ def get_booking_detail(
         id=db_event_booking.id,
         event_date=db_event_booking.event_date,
         status=db_event_booking.status,
+        hold_expires_at=db_event_booking.hold_expires_at,
         event=EventRead.model_validate(db_event_booking.event, from_attributes=True),
         seats=[
             EventSeatInfo(
