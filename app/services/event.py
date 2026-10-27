@@ -511,25 +511,57 @@ def get_booking_detail(
             detail="Booking not found or expired",
         )
 
-    seat_status = _effective_seat_status(
-        db_event_booking.status, db_event_booking.hold_expires_at, now
-    )
+    return _to_booking_detail(db_event_booking, now)
+
+
+def _to_booking_detail(booking: EventBooking, now: datetime) -> EventBookingDetail:
+    seat_status = _effective_seat_status(booking.status, booking.hold_expires_at, now)
 
     return EventBookingDetail(
-        id=db_event_booking.id,
-        event_date=db_event_booking.event_date,
-        status=db_event_booking.status,
-        hold_expires_at=db_event_booking.hold_expires_at,
-        event=EventRead.model_validate(db_event_booking.event, from_attributes=True),
+        id=booking.id,
+        event_date=booking.event_date,
+        status=booking.status,
+        hold_expires_at=booking.hold_expires_at,
+        event=EventRead.model_validate(booking.event, from_attributes=True),
         seats=[
             EventSeatInfo(
                 id=claim.venue_seat_id,
                 seat_number=claim.venue_seat.seat_number,
                 status=seat_status,
             )
-            for claim in db_event_booking.seats
+            for claim in booking.seats
         ],
     )
+
+
+def get_bookings(
+    session: Session, user_id: int, page: int, per_page: int
+) -> list[EventBookingDetail]:
+    now = datetime.now(UTC)
+
+    bookings = session.exec(
+        select(EventBooking)
+        .where(
+            EventBooking.user_id == user_id,
+            or_(
+                EventBooking.status != EventBookingStatus.PENDING,
+                EventBooking.hold_expires_at.is_(None),
+                EventBooking.hold_expires_at > now,
+            ),
+        )
+        .options(
+            joinedload(EventBooking.event).options(
+                joinedload(Event.venue).joinedload(Venue.owner),
+                joinedload(Event.organizer),
+            ),
+            selectinload(EventBooking.seats).joinedload(EventSeatClaim.venue_seat),
+        )
+        .order_by(EventBooking.id.desc())
+        .offset((page - 1) * per_page)
+        .limit(per_page)
+    ).all()
+
+    return [_to_booking_detail(b, now) for b in bookings]
 
 
 def fetch_top_matching_event(data: EventBookingOutputStruct, n: int = 5) -> list[Event]:

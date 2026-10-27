@@ -52,7 +52,7 @@ def hold_event_seats(
 
 
 @event_router.post(
-    "/booking/{booking_id}/checkout", response_model=EventBookingIDResponse
+    "/bookings/{booking_id}/checkout", response_model=EventBookingIDResponse
 )
 def checkout_booking(
     booking_id: int,
@@ -91,7 +91,17 @@ def list_events(
     )
 
 
-@event_router.get("/booking/{booking_id}", response_model=EventBookingDetail)
+@event_router.get("/bookings", response_model=list[EventBookingDetail])
+def get_event_bookings(
+    page: int = Query(default=1, ge=1),
+    per_page: int = Query(default=10, ge=1, le=50),
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+) -> list[EventBookingDetail]:
+    return event_service.get_bookings(session, current_user.id, page, per_page)
+
+
+@event_router.get("/bookings/{booking_id}", response_model=EventBookingDetail)
 def get_event_booking_detail(
     booking_id: int,
     session: Session = Depends(get_session),
