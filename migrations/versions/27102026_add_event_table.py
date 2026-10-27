@@ -1,7 +1,7 @@
 """add event table
 
-Revision ID: 9319eb7c2aeb
-Revises: a125ab2f2fbc
+Revision ID: 27102026_add_event_table
+Revises: 27102026_add_venue_table
 Create Date: 2026-10-26 22:41:34.088254
 
 """
@@ -12,8 +12,8 @@ from alembic import op
 import sqlalchemy as sa, sqlmodel
 
 # revision identifiers, used by Alembic.
-revision: str = "9319eb7c2aeb"
-down_revision: Union[str, Sequence[str], None] = "a125ab2f2fbc"
+revision: str = "27102026_add_event_table"
+down_revision: Union[str, Sequence[str], None] = "27102026_add_venue_table"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 

@@ -1,6 +1,6 @@
 """add venue table
 
-Revision ID: a125ab2f2fbc
+Revision ID: a125ab2f2fbc_add_venue_table
 Revises: 25102026_add_user_table
 Create Date: 2026-10-26 22:12:36.153872
 
@@ -12,7 +12,7 @@ from alembic import op
 import sqlalchemy as sa, sqlmodel
 
 # revision identifiers, used by Alembic.
-revision: str = "a125ab2f2fbc"
+revision: str = "27102026_add_venue_table"
 down_revision: Union[str, Sequence[str], None] = "25102026_add_user_table"
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None

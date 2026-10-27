@@ -1,8 +1,11 @@
+from datetime import UTC, datetime
+
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, select
+from sqlmodel import Session, insert, select
 import logging
 
+from app.models.venue_seat import VenueSeat
 from app.models.venue import Venue
 from app.schemas.venue import VenueCreate, VenueRead, VenueUpdate
 
@@ -14,14 +17,29 @@ def create_venue(
     data: VenueCreate,
     owner_id: int,
 ) -> VenueRead:
-    venue = Venue(
-        **data.model_dump(),
-        owner_id=owner_id,
-    )
-
-    session.add(venue)
-
     try:
+        venue = Venue(
+            **data.model_dump(),
+            owner_id=owner_id,
+        )
+
+        session.add(venue)
+
+        session.flush()
+
+        session.exec(
+            insert(VenueSeat),
+            params=[
+                {
+                    "venue_id": venue.id,
+                    "seat_number": f"{i+1}",
+                    "created_at": datetime.now(UTC),
+                    "updated_at": datetime.now(UTC),
+                }
+                for i in range(venue.capacity)
+            ],
+        )
+
         session.commit()
     except Exception as e:
         session.rollback()

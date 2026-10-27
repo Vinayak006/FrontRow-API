@@ -3,7 +3,15 @@ from decimal import Decimal
 from enum import Enum
 from typing import Literal
 
-from pydantic import BaseModel, EmailStr, Field, model_validator
+from fastapi import HTTPException
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    field_validator,
+    model_validator,
+)
 
 from app.schemas.user import UserInfo
 from app.schemas.venue import VenueRead
@@ -20,7 +28,14 @@ EventStatus = Literal["active", "inactive"]
 
 class EventSeatStatus(str, Enum):
     RESERVED = "reserved"
-    OPEN = "open"
+    AVAILABLE = "available"
+    HOLD = "hold"
+
+
+class EventBookingStatus(str, Enum):
+    CONFIRMED = "confirmed"
+    PENDING = "pending"
+    CANCELLED = "cancelled"
 
 
 class EventBase(BaseModel):
@@ -84,3 +99,36 @@ class EventRead(BaseModel):
 
     created_at: datetime
     updated_at: datetime
+
+
+class EventSeatInfo(BaseModel):
+    id: int
+    seat_number: str
+    status: EventSeatStatus | None = EventSeatStatus.AVAILABLE
+
+
+class EventSeatHoldRequest(BaseModel):
+    seat_ids: list[int] = Field(min_length=1)
+    event_date: date
+
+    @field_validator("seat_ids")
+    @classmethod
+    def validate_duplicate_seat_ids(cls, v: str) -> str:
+        if len(v) != len(set(v)):
+            raise HTTPException(
+                status_code=400,
+                detail="Duplicate seat IDs are not allowed",
+            )
+        return v
+
+
+class EventBookingIDResponse(BaseModel):
+    booking_id: int
+
+
+class EventBookingDetail(BaseModel):
+    id: int
+    event_date: date
+    status: EventBookingStatus
+    event: EventRead
+    seats: list[EventSeatInfo]
