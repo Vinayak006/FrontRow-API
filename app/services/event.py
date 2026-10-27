@@ -6,8 +6,10 @@ from fastapi import HTTPException, status
 from psycopg.errors import ForeignKeyViolation
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.exc import IntegrityError
-from sqlmodel import Session, and_, delete, select, text, update
+from sqlmodel import Session, and_, delete, func, or_, select, text, update
 
+from app.config.database import engine
+from app.schemas.llm import EventBookingOutputStruct
 from app.config.config import settings
 from app.models.event_seat_claim import EventSeatClaim
 from app.models.event_booking import EventBooking
@@ -485,7 +487,7 @@ def get_booking_detail(
         .where(EventBooking.id == booking_id, EventBooking.user_id == user_id)
         .options(
             joinedload(EventBooking.event).options(
-                joinedload(Event.venue),
+                joinedload(Event.venue).joinedload(Venue.owner),
                 joinedload(Event.organizer),
             ),
             selectinload(EventBooking.seats).joinedload(EventSeatClaim.venue_seat),
@@ -528,3 +530,51 @@ def get_booking_detail(
             for claim in db_event_booking.seats
         ],
     )
+
+
+def fetch_top_matching_event(data: EventBookingOutputStruct, n: int = 5) -> list[Event]:
+    if not data.quantity and not data.max_price:
+        return []
+    with Session(engine) as session:
+        event_q = select(Event)
+        if data.max_price:
+            event_q = event_q.where(Event.base_price < data.max_price)
+
+        if data.quantity:
+            now = datetime.now(UTC)
+
+            available_seat_count = (
+                select(func.count(VenueSeat.id))
+                .select_from(VenueSeat)
+                .outerjoin(
+                    EventSeatClaim,
+                    and_(
+                        EventSeatClaim.venue_seat_id == VenueSeat.id,
+                        EventSeatClaim.event_id == Event.id,
+                    ),
+                )
+                .outerjoin(
+                    EventBooking,
+                    EventBooking.id == EventSeatClaim.booking_id,
+                )
+                .where(
+                    VenueSeat.venue_id == Event.venue_id,
+                    or_(
+                        EventBooking.id.is_(None),
+                        and_(
+                            EventBooking.status == EventBookingStatus.PENDING,
+                            EventBooking.hold_expires_at <= now,
+                        ),
+                    ),
+                )
+                .scalar_subquery()
+            )
+
+            event_q = event_q.where(available_seat_count >= data.quantity)
+
+        event_q = event_q.options(
+            joinedload(Event.venue).joinedload(Venue.owner),
+            joinedload(Event.organizer),
+        )
+
+        return session.exec(event_q.order_by(Event.from_date).limit(n)).all()

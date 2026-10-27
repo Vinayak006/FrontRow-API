@@ -1,6 +1,9 @@
 from functools import cached_property
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.schemas.llm import LLMProvider
 
 
 class Settings(BaseSettings):
@@ -16,6 +19,11 @@ class Settings(BaseSettings):
     JWT_SECRET_KEY: str
 
     RESERVE_HOLD_MIN: int = 10
+
+    LLM_PROVIDER: LLMProvider | None = None
+    LLM_MODEL: str | None = None
+    GEMINI_API_KEY: str | None = None
+    ANTHROPIC_API_KEY: str | None = None
 
     DEVELOPMENT_MODE: bool = True
 
